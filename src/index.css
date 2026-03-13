@@ -1,0 +1,26 @@
+.search-coin {
+  cursor: pointer;
+  padding: 5px;
+  border-bottom: 1px solid #eee;
+}
+
+.crypto-info {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  background-color: gray;
+  margin-bottom: 10px;
+}
+
+.btns {
+  display: flex;
+  gap: 10px;
+  height: 30px;
+  margin-left: 20px;
+}
+
+.btns button {
+  padding: 5px 10px;
+  cursor: pointer;
+  /* height: 15px; */
+}
