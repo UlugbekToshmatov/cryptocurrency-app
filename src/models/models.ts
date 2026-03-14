@@ -6,6 +6,7 @@ export interface CryptoPrice {
 export interface ICryptocurrency {
   coin: Coin;
   prices: CryptoPrice;
+  oldPrices?: CryptoPrice;
 }
 
 export interface Params {

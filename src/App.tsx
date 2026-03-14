@@ -30,7 +30,7 @@ function App() {
     intervalId.current = window.setInterval(() => {
       if (cryptocurrenciesRef.current.length > 0) {
         console.count("Updating cryptocurrency prices...");
-        fetchCryptoPrices(cryptocurrenciesRef.current.map((crypto) => crypto.coin)).then((updatedCryptos) => {
+        fetchCryptoPrices(cryptocurrenciesRef.current.map((crypto) => crypto)).then((updatedCryptos) => {
           console.log("Updated cryptocurrencies:", updatedCryptos);
           setCryptocurrencies(updatedCryptos);
         }).catch(() => {
@@ -97,10 +97,32 @@ function App() {
     }
   }
 
+  function handleUpdateAll() {
+    clearInterval(intervalId.current);
+    fetchCryptoPrices(cryptocurrencies).then((updatedCryptos) => {
+      console.log("Updated all cryptocurrencies:", updatedCryptos);
+      setCryptocurrencies(updatedCryptos);
+      
+      intervalId.current = window.setInterval(() => {
+        if (cryptocurrenciesRef.current.length > 0) {
+          console.count("Updating cryptocurrency prices...");
+          fetchCryptoPrices(cryptocurrenciesRef.current.map((crypto) => crypto)).then((updatedCryptos) => {
+            console.log("Updated cryptocurrencies:", updatedCryptos);
+            setCryptocurrencies(updatedCryptos);
+          }).catch(() => {
+            console.error("Failed to update cryptocurrency prices in interval.");
+          });
+        }
+      }, 5000);
+    }).catch(() => {
+      alert("Failed to update cryptocurrency prices. Please try again later.");
+    });
+  }
+
   return (
     <main>
       <section>
-        <div className='search-bar'>
+        <div className="search-bar">
           <input
             type="text"
             placeholder="Search cryptocurrencies..."
@@ -111,7 +133,9 @@ function App() {
         </div>
         <ul>
           {searchResults.map((coin) => (
-            <li className='search-coin' key={coin.symbol}
+            <li
+              className="search-coin"
+              key={coin.symbol}
               onClick={() => {
                 setSearchQuery(`${coin.coinName} (${coin.symbol})`);
                 setSearchResults([]);
@@ -123,22 +147,31 @@ function App() {
         </ul>
       </section>
       <h2>Cryptocurrencies</h2>
-      {isPending ? <p>Loading...</p>
-        : (<ul>
-            {cryptocurrencies.map((crypto) => (
-              <li key={crypto.coin.symbol}>
-                <Cryptocurrency
-                  coinName={crypto.coin.coinName}
-                  symbol={crypto.coin.symbol}
-                  priceUSD={crypto.prices.USD}
-                  priceEUR={crypto.prices.EUR}
-                  setCryptocurrencies={setCryptocurrencies}
-                />
-              </li>
-            ))}
-          </ul>)
-      }
+      {isPending ? (
+        <p>Loading...</p>
+      ) : (
+        <ul>
+          {cryptocurrencies.map((crypto) => (
+            <li key={crypto.coin.symbol}>
+              <Cryptocurrency
+                coinName={crypto.coin.coinName}
+                symbol={crypto.coin.symbol}
+                priceUSD={crypto.prices.USD}
+                priceEUR={crypto.prices.EUR}
+                oldPriceUSD={crypto.oldPrices?.USD}
+                oldPriceEUR={crypto.oldPrices?.EUR}
+                setCryptocurrencies={setCryptocurrencies}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
+      {cryptocurrencies.length > 0 && (
+        <button onClick={handleUpdateAll}>
+          Update All
+        </button>
+      )}
     </main>
-  )
+  );
 }
-export default App
+export default App;

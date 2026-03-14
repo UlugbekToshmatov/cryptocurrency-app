@@ -51,7 +51,7 @@ export async function fetchAllCoins(): Promise<Coin[]> {
   }
 }
 
-export async function fetchSingleCryptoPrice(cryptocoin: Coin): Promise<ICryptocurrency> {
+export async function fetchSingleCryptoPrice(cryptocoin: Coin, oldPrices?: CryptoPrice): Promise<ICryptocurrency> {
   const path = "price";
   const params = {
     fsym: cryptocoin.symbol,
@@ -61,13 +61,13 @@ export async function fetchSingleCryptoPrice(cryptocoin: Coin): Promise<ICryptoc
   const response = await get(path, params) as CryptoPrice;
 
   console.log(`Price for ${cryptocoin.coinName}:`, response);
-  return { coin: cryptocoin, prices: response };
+  return { coin: cryptocoin, prices: response, oldPrices };
 }
 
-export async function fetchCryptoPrices(cryptocoins: Coin[]): Promise<ICryptocurrency[]> {
+export async function fetchCryptoPrices(cryptocoins: ICryptocurrency[]): Promise<ICryptocurrency[]> {
   const path = "pricemulti";
   const params = {
-    fsyms: cryptocoins.map(coin => coin.symbol).join(","),
+    fsyms: cryptocoins.map(coin => coin.coin.symbol).join(","),
     tsyms: "USD,EUR",
     api_key: API_KEY
   };
@@ -75,8 +75,9 @@ export async function fetchCryptoPrices(cryptocoins: Coin[]): Promise<ICryptocur
 
   try {
     const coins = Object.entries(response).map(([coinSymbol, prices]) => ({
-      coin: cryptocoins.find(coin => coin.symbol === coinSymbol) as Coin,
+      coin: cryptocoins.find(crypto => crypto.coin.symbol === coinSymbol)?.coin as Coin,
       prices: prices as CryptoPrice,
+      oldPrices: cryptocoins.find(crypto => crypto.coin.symbol === coinSymbol)?.prices
     }));
 
     console.log(coins);
