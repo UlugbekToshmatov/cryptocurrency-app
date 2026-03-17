@@ -7,20 +7,24 @@ export type Action =
   | { type: ActionType.UPDATE_CRYPTO; payload: ICryptocurrency }
   | { type: ActionType.REMOVE_CRYPTO; payload: string }
   | { type: ActionType.SET_QUERY; payload: string }
-  | { type: ActionType.SET_RESULTS; payload: Coin[] };
+  | { type: ActionType.SET_RESULTS; payload: Coin[] }
+  | { type: ActionType.SET_ONLINE_STATUS }
+  | { type: ActionType.SET_OFFLINE_STATUS };
 
 export interface AppState {
   cryptocurrencies: ICryptocurrency[];
   allCoins: Coin[];
   searchQuery: string;
   searchResults: Coin[];
+  isOnline: boolean;
 }
 
 export const appInitialState: AppState = {
   cryptocurrencies: [],
   allCoins: [],
   searchQuery: '',
-  searchResults: []
+  searchResults: [],
+  isOnline: navigator.onLine
 }
 
 export function appReducer(state: AppState, action: Action): AppState {
@@ -83,9 +87,15 @@ export function appReducer(state: AppState, action: Action): AppState {
 
     case ActionType.SET_QUERY:
       return { ...state, searchQuery: action.payload };
-      
+
     case ActionType.SET_RESULTS:
       return { ...state, searchResults: action.payload };
+    
+    case ActionType.SET_ONLINE_STATUS:
+      return { ...state, isOnline: true };
+
+    case ActionType.SET_OFFLINE_STATUS:
+      return { ...state, isOnline: false };
 
     default:
       return state;

@@ -12,7 +12,7 @@ function App() {
   const cryptocurrenciesRef = useRef<ICryptocurrency[]>([]);
   
   const startInterval = useCallback(() => {
-    clearInterval(intervalId.current);    // In case useEffect runs multiple times
+    clearInterval(intervalId.current);    // In case startInterval is called multiple times
     intervalId.current = window.setInterval(() => {
       const current = cryptocurrenciesRef.current;
       if (current.length === 0) return;
@@ -25,6 +25,19 @@ function App() {
   }, [dispatch]);
 
   useEffect(() => {
+    function handleOnline() {
+      dispatch({ type: ActionType.SET_ONLINE_STATUS });
+      startInterval();
+    }
+
+    function handleOffline() {
+      dispatch({ type: ActionType.SET_OFFLINE_STATUS });
+      clearInterval(intervalId.current);
+    }
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
     fetchSingleCryptoPrice({ symbol: "DOGE", coinName: "Dogecoin" }).then((cryptoData) => {
       console.log("Dogecoin:", cryptoData);
       startTransition(() => {
@@ -39,16 +52,24 @@ function App() {
       });
     });
 
-    startInterval();
-
-    return () => clearInterval(intervalId.current);
-  }, []);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      clearInterval(intervalId.current);
+    }
+  }, [startInterval, dispatch]);
   // startInterval and dispatch are stable refs — intentionally excluded
   // to prevent re-running the setup effect on every render
 
   useEffect(() => {
     cryptocurrenciesRef.current = state.cryptocurrencies;
-  }, [state.cryptocurrencies.length]);
+  }, [state.cryptocurrencies]);
+
+  useEffect(() => {
+    if (state.cryptocurrencies.length > 0 && state.isOnline) {
+      startInterval();
+    }
+  }, [state.cryptocurrencies.length, state.isOnline, startInterval]);
 
   if (state.allCoins.length === 0)
     console.count(`All coins: ${state.allCoins.length}`);
