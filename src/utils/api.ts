@@ -43,7 +43,7 @@ export async function fetchAllCoins(): Promise<Coin[]> {
       symbol: coin.Symbol,
       coinName: coin.CoinName,
     }));
-    console.count(`Fetched coins: ${coins.length}`);
+    
     return coins;
   } catch (error) {
     console.error('Error processing coin data: ', error);
@@ -59,8 +59,7 @@ export async function fetchSingleCryptoPrice(cryptocoin: Coin, oldPrices?: Crypt
     api_key: API_KEY
   };
   const response = await get(path, params) as CryptoPrice;
-
-  console.log(`Price for ${cryptocoin.coinName}:`, response);
+  
   return { coin: cryptocoin, prices: response, oldPrices };
 }
 
@@ -80,7 +79,6 @@ export async function fetchCryptoPrices(cryptocoins: ICryptocurrency[]): Promise
       oldPrices: cryptocoins.find(crypto => crypto.coin.symbol === coinSymbol)?.prices
     }));
 
-    console.log(coins);
     return coins;
   } catch (error) {
     console.error("Error processing crypto prices: ", error);

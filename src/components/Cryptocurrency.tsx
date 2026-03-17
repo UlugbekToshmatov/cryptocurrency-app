@@ -1,6 +1,7 @@
 import { memo } from 'react'
-import type { ICryptocurrency } from '../models/models';
+import { ActionType } from '../models/models';
 import { fetchSingleCryptoPrice } from '../utils/api';
+import { useAppReducerDispatchContext } from '../hooks/useAppReducerContext';
 
 interface CryptocurrencyProps {
   coinName: string;
@@ -9,30 +10,23 @@ interface CryptocurrencyProps {
   priceEUR: number;
   oldPriceUSD?: number;
   oldPriceEUR?: number;
-  setCryptocurrencies: React.Dispatch<React.SetStateAction<ICryptocurrency[]>>;
 }
 
-function Cryptocurrency({ coinName, symbol, priceUSD, priceEUR, oldPriceUSD, oldPriceEUR, setCryptocurrencies }: CryptocurrencyProps) {
-  
+function Cryptocurrency({ coinName, symbol, priceUSD, priceEUR, oldPriceUSD, oldPriceEUR }: CryptocurrencyProps) {
+  const { dispatch } = useAppReducerDispatchContext();
   console.count(`Rendering Cryptocurrency: ${coinName} (${symbol})`);
 
   function handleUpdate() {
     const oldPrices = oldPriceUSD && oldPriceEUR ? { USD: oldPriceUSD, EUR: oldPriceEUR } : undefined;
     fetchSingleCryptoPrice({ symbol, coinName }, oldPrices).then((updatedData) => {
-      setCryptocurrencies((prev) =>
-        prev.map((crypto) =>
-          crypto.coin.symbol === symbol ? updatedData : crypto
-        )
-      );
+      dispatch({ type: ActionType.UPDATE_CRYPTO, payload: updatedData });
     }).catch(() => {
       alert(`Failed to update price for "${coinName} (${symbol})". Please try again later.`);
     });
   }
 
   function handleRemove() {
-    setCryptocurrencies((prev) =>
-      prev.filter((crypto) => crypto.coin.symbol !== symbol)
-    );
+    dispatch({ type: ActionType.REMOVE_CRYPTO, payload: symbol });
   }
 
   const previous = oldPriceUSD ?? priceUSD;

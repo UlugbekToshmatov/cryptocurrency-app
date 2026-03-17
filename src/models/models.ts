@@ -20,3 +20,13 @@ export interface Coin {
   symbol: string;
   coinName: string;
 }
+
+export enum ActionType {
+  SET_COINS = 'SET_COINS',
+  SET_QUERY = 'SET_QUERY',
+  SET_RESULTS = 'SET_RESULTS',
+  SET_CRYPTOS = 'SET_CRYPTOS',
+  ADD_CRYPTO = 'ADD_CRYPTO',
+  UPDATE_CRYPTO = 'UPDATE_CRYPTO',
+  REMOVE_CRYPTO = 'REMOVE_CRYPTO',
+}
