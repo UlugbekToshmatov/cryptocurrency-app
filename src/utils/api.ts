@@ -2,6 +2,7 @@ import type { CryptoPrice, ICryptocurrency, Params, Coin } from "../models/model
 
 const API_KEY = import.meta.env.VITE_API_KEY;
 const baseUrl = 'https://min-api.cryptocompare.com/data';
+const currencies = ['USD', 'EUR'].join(",");
 
 async function get(path: string, params: Params): Promise<any> {
   const url = new URL(`${baseUrl}/${path}`);
@@ -55,7 +56,7 @@ export async function fetchSingleCryptoPrice(cryptocoin: Coin, oldPrices?: Crypt
   const path = "price";
   const params = {
     fsym: cryptocoin.symbol,
-    tsyms: "USD,EUR",
+    tsyms: currencies,
     api_key: API_KEY
   };
   const response = await get(path, params) as CryptoPrice;
@@ -67,7 +68,7 @@ export async function fetchCryptoPrices(cryptocoins: ICryptocurrency[]): Promise
   const path = "pricemulti";
   const params = {
     fsyms: cryptocoins.map(coin => coin.coin.symbol).join(","),
-    tsyms: "USD,EUR",
+    tsyms: currencies,
     api_key: API_KEY
   };
   const response = await get(path, params);

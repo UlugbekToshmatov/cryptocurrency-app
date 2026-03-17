@@ -32,32 +32,35 @@ export function appReducer(state: AppState, action: Action): AppState {
       return {
         ...state,
         cryptocurrencies: state.cryptocurrencies.map((crypto) => {
-          const updated = action.payload.find(
-            c => c.coin.symbol === crypto.coin.symbol
+          const updatedCrypto = action.payload.find(
+            (c) => c.coin.symbol === crypto.coin.symbol
           );
 
-          if (!updated) return crypto;
+          if (!updatedCrypto) return crypto;
 
-          // Only update if price changed
-          if (
-            updated.prices.USD === crypto.prices.USD &&
-            updated.prices.EUR === crypto.prices.EUR
-          ) {
-            return crypto; // preserve reference
+          const isSame =
+            crypto.prices.USD === updatedCrypto.prices.USD &&
+            crypto.prices.EUR === updatedCrypto.prices.EUR;
+
+          if (isSame) {
+            return crypto; // Keep same reference
           }
 
           return {
             ...crypto,
-            prices: updated.prices,
+            prices: updatedCrypto.prices,
             oldPrices: crypto.prices
           };
         })
       };
 
     case ActionType.ADD_CRYPTO:
+      // Use symbol-based duplicate check instead of reference equality
       return {
         ...state,
-        cryptocurrencies: state.cryptocurrencies.includes(action.payload)
+        cryptocurrencies: state.cryptocurrencies.some(
+          c => c.coin.symbol === action.payload.coin.symbol
+        )
           ? state.cryptocurrencies
           : [...state.cryptocurrencies, action.payload]
       };

@@ -1,25 +1,17 @@
 import { createContext, useReducer, type Dispatch } from 'react'
 import { appInitialState, appReducer, type Action, type AppState } from '../hooks/appReducer';
 
-interface AppReducerStateContextType {
-  state: AppState;
-}
-
-interface AppReducerDispatchContextType {
-  dispatch: Dispatch<Action>;
-}
-
-export const AppReducerStateContext = createContext<AppReducerStateContextType | undefined>(undefined);
-export const AppReducerDispatchContext = createContext<AppReducerDispatchContextType | undefined>(undefined);
+export const AppReducerStateContext = createContext<AppState | undefined>(undefined);
+export const AppReducerDispatchContext = createContext<Dispatch<Action> | undefined>(undefined);
 
 export default function AppReducerContextProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, appInitialState);
 
   return (
-    <AppReducerDispatchContext value={{ dispatch }}>
-      <AppReducerStateContext value={{ state }}>
+    <AppReducerDispatchContext.Provider value={ dispatch }>
+      <AppReducerStateContext.Provider value={ state }>
         {children}
-      </AppReducerStateContext>
-    </AppReducerDispatchContext>
+      </AppReducerStateContext.Provider>
+    </AppReducerDispatchContext.Provider>
   )
 }

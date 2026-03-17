@@ -2,15 +2,15 @@ import { useContext } from 'react'
 import { AppReducerDispatchContext, AppReducerStateContext } from '../contexts/AppReducerContextProvider'
 
 export function useAppReducerStateContext() {
-  const context = useContext(AppReducerStateContext);
-    if (!context)
-      throw new Error('AppReducerStateContext not initiated!');
-    return context;
+  const state = useContext(AppReducerStateContext);
+  if (!state)
+    throw new Error('AppReducerStateContext not initiated!');
+  return state;
 }
 
 export function useAppReducerDispatchContext() {
-  const context = useContext(AppReducerDispatchContext);
-    if (!context)
-      throw new Error('AppReducerDispatchContext not initiated!');
-    return context;
+  const dispatch = useContext(AppReducerDispatchContext);
+  if (!dispatch)
+    throw new Error("AppReducerDispatchContext not initiated!");
+  return dispatch;
 }

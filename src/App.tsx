@@ -1,16 +1,29 @@
-import { useEffect, useTransition, useRef } from 'react'
+import { useEffect, useTransition, useRef, useCallback } from 'react'
 import { fetchAllCoins, fetchCryptoPrices, fetchSingleCryptoPrice } from "./utils/api"
 import { ActionType, type ICryptocurrency } from './models/models';
-import Cryptocurrency from './components/Cryptocurrency';
 import { useAppReducerDispatchContext, useAppReducerStateContext } from './hooks/useAppReducerContext';
+import CryptoList from './components/CryptoList';
 
 function App() {
-  const { state } = useAppReducerStateContext();
-  const { dispatch } = useAppReducerDispatchContext();
+  const state = useAppReducerStateContext();
+  const dispatch = useAppReducerDispatchContext();
   const [isPending, startTransition] = useTransition();
   const intervalId = useRef<number | undefined>(undefined);
   const cryptocurrenciesRef = useRef<ICryptocurrency[]>([]);
   
+  const startInterval = useCallback(() => {
+    clearInterval(intervalId.current);    // In case useEffect runs multiple times
+    intervalId.current = window.setInterval(() => {
+      const current = cryptocurrenciesRef.current;
+      if (current.length === 0) return;
+      fetchCryptoPrices(current).then((updatedCryptos) => {
+        dispatch({ type: ActionType.SET_CRYPTOS, payload: updatedCryptos });
+      }).catch(() => {
+        console.error("Failed to update cryptocurrency prices in interval.");
+      });
+    }, 5000);
+  }, [dispatch]);
+
   useEffect(() => {
     fetchSingleCryptoPrice({ symbol: "DOGE", coinName: "Dogecoin" }).then((cryptoData) => {
       console.log("Dogecoin:", cryptoData);
@@ -26,19 +39,12 @@ function App() {
       });
     });
 
-    intervalId.current = window.setInterval(() => {
-      if (cryptocurrenciesRef.current.length > 0) {
-        fetchCryptoPrices(cryptocurrenciesRef.current.map((crypto) => crypto)).then((updatedCryptos) => {
-          console.log("Updated cryptocurrencies:", updatedCryptos);
-          dispatch({ type: ActionType.SET_CRYPTOS, payload: updatedCryptos });
-        }).catch(() => {
-          console.error("Failed to update cryptocurrency prices in interval.");
-        });
-      }
-    }, 5000);
+    startInterval();
 
     return () => clearInterval(intervalId.current);
   }, []);
+  // startInterval and dispatch are stable refs — intentionally excluded
+  // to prevent re-running the setup effect on every render
 
   useEffect(() => {
     cryptocurrenciesRef.current = state.cryptocurrencies;
@@ -103,20 +109,29 @@ function App() {
       console.log("Updated all cryptocurrencies:", updatedCryptos);
       dispatch({ type: ActionType.SET_CRYPTOS, payload: updatedCryptos });
       
-      intervalId.current = window.setInterval(() => {
-        if (cryptocurrenciesRef.current.length > 0) {
-          fetchCryptoPrices(cryptocurrenciesRef.current.map((crypto) => crypto)).then((updatedCryptos) => {
-            console.log("Updated cryptocurrencies:", updatedCryptos);
-            dispatch({ type: ActionType.SET_CRYPTOS, payload: updatedCryptos });
-          }).catch(() => {
-            console.error("Failed to update cryptocurrency prices in interval.");
-          });
-        }
-      }, 5000);
+      startInterval();
     }).catch(() => {
       alert("Failed to update cryptocurrency prices. Please try again later.");
     });
   }
+
+  function handleResultSelection(coinName: string, symbol: string) {
+    dispatch({ type: ActionType.SET_QUERY, payload: `${coinName} (${symbol})` });
+    dispatch({ type: ActionType.SET_RESULTS, payload: [] });
+  }
+
+  const handleUpdate = useCallback((symbol: string, coinName: string, oldPriceUSD?: number, oldPriceEUR?: number) => {
+    const oldPrices = oldPriceUSD && oldPriceEUR ? {USD: oldPriceUSD, EUR: oldPriceEUR} : undefined;
+    fetchSingleCryptoPrice({ symbol, coinName }, oldPrices).then((updatedData) => {
+      dispatch({ type: ActionType.UPDATE_CRYPTO, payload: updatedData });
+    }).catch(() => {
+      alert(`Failed to update price for "${coinName} (${symbol})". Please try again later.`);
+    });
+  }, [dispatch]);
+
+  const handleRemove = useCallback((symbol: string) => {
+    dispatch({ type: ActionType.REMOVE_CRYPTO, payload: symbol });
+  }, [dispatch]);
 
   return (
     <main>
@@ -135,10 +150,7 @@ function App() {
             <li
               className="search-coin"
               key={coin.symbol}
-              onClick={() => {
-                dispatch({ type: ActionType.SET_QUERY, payload: `${coin.coinName} (${coin.symbol})` });
-                dispatch({ type: ActionType.SET_RESULTS, payload: [] });
-              }}
+              onClick={() => handleResultSelection(coin.coinName, coin.symbol)}
             >
               {`${coin.coinName} (${coin.symbol})`}
             </li>
@@ -149,25 +161,10 @@ function App() {
       {isPending ? (
         <p>Loading...</p>
       ) : (
-        <ul>
-          {state.cryptocurrencies.map((crypto) => (
-            <li key={crypto.coin.symbol}>
-              <Cryptocurrency
-                coinName={crypto.coin.coinName}
-                symbol={crypto.coin.symbol}
-                priceUSD={crypto.prices.USD}
-                priceEUR={crypto.prices.EUR}
-                oldPriceUSD={crypto.oldPrices?.USD}
-                oldPriceEUR={crypto.oldPrices?.EUR}
-              />
-            </li>
-          ))}
-        </ul>
+        <CryptoList handleUpdate={handleUpdate} handleRemove={handleRemove} />
       )}
       {state.cryptocurrencies.length > 0 && (
-        <button onClick={handleUpdateAll}>
-          Update All
-        </button>
+        <button onClick={handleUpdateAll}>Update All</button>
       )}
     </main>
   );
