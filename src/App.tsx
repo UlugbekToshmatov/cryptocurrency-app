@@ -3,6 +3,7 @@ import { fetchAllCoins, fetchCryptoPrices, fetchSingleCryptoPrice } from "./util
 import { ActionType, type ICryptocurrency } from './models/models';
 import { useAppReducerDispatchContext, useAppReducerStateContext } from './hooks/useAppReducerContext';
 import CryptoList from './components/CryptoList';
+import { useOnlineStatus } from './hooks/useOnlineStatus';
 
 function App() {
   const state = useAppReducerStateContext();
@@ -10,9 +11,13 @@ function App() {
   const [isPending, startTransition] = useTransition();
   const intervalId = useRef<number | undefined>(undefined);
   const cryptocurrenciesRef = useRef<ICryptocurrency[]>([]);
+
+  const stopInterval = useCallback(() => {
+    clearInterval(intervalId.current);
+  }, [])
   
   const startInterval = useCallback(() => {
-    clearInterval(intervalId.current);    // In case startInterval is called multiple times
+    stopInterval();    // In case startInterval is called multiple times
     intervalId.current = window.setInterval(() => {
       const current = cryptocurrenciesRef.current;
       if (current.length === 0) return;
@@ -21,45 +26,39 @@ function App() {
       }).catch(() => {
         console.error("Failed to update cryptocurrency prices in interval.");
       });
-    }, 5000);
-  }, [dispatch]);
+    }, 10000);
+  }, [dispatch, stopInterval]);
+
+  useOnlineStatus(startInterval, stopInterval);
 
   useEffect(() => {
-    function handleOnline() {
-      dispatch({ type: ActionType.SET_ONLINE_STATUS });
-      startInterval();
-    }
+    const symbol = 'DOGE';
+    const coinName = 'Dogecoin';
 
-    function handleOffline() {
-      dispatch({ type: ActionType.SET_OFFLINE_STATUS });
-      clearInterval(intervalId.current);
-    }
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    fetchSingleCryptoPrice({ symbol: "DOGE", coinName: "Dogecoin" }).then((cryptoData) => {
-      console.log("Dogecoin:", cryptoData);
+    fetchSingleCryptoPrice({ symbol, coinName })
+    .then((cryptoData) => {
+      console.log(`${coinName} (${symbol})`, cryptoData);
       startTransition(() => {
         dispatch({ type: ActionType.ADD_CRYPTO, payload: cryptoData });
       });
+    })
+    .catch(() => {
+      alert(`Failed to load the data of the default cryptocurrency ${coinName} (${symbol})`);
     });
 
-    fetchAllCoins().then((coins) => {
+    fetchAllCoins()
+    .then((coins) => {
       console.log("All coins fetched:", coins.length);
       startTransition(() => {
         dispatch({ type: ActionType.SET_COINS, payload: coins });
       });
+    })
+    .catch(() => {
+      alert("Failed to load the list of all coins");
     });
 
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-      clearInterval(intervalId.current);
-    }
-  }, [startInterval, dispatch]);
-  // startInterval and dispatch are stable refs — intentionally excluded
-  // to prevent re-running the setup effect on every render
+    return () => stopInterval();
+  }, [startInterval, stopInterval, dispatch]);
 
   useEffect(() => {
     cryptocurrenciesRef.current = state.cryptocurrencies;
@@ -68,8 +67,10 @@ function App() {
   useEffect(() => {
     if (state.cryptocurrencies.length > 0 && state.isOnline) {
       startInterval();
+    } else if (state.cryptocurrencies.length === 0 || !state.isOnline) {
+      stopInterval();
     }
-  }, [state.cryptocurrencies.length, state.isOnline, startInterval]);
+  }, [state.cryptocurrencies.length, state.isOnline, startInterval, stopInterval]);
 
   if (state.allCoins.length === 0)
     console.count(`All coins: ${state.allCoins.length}`);
@@ -125,7 +126,7 @@ function App() {
   }
 
   function handleUpdateAll() {
-    clearInterval(intervalId.current);
+    stopInterval();
     fetchCryptoPrices(state.cryptocurrencies).then((updatedCryptos) => {
       console.log("Updated all cryptocurrencies:", updatedCryptos);
       dispatch({ type: ActionType.SET_CRYPTOS, payload: updatedCryptos });
@@ -143,9 +144,12 @@ function App() {
 
   const handleUpdate = useCallback((symbol: string, coinName: string, oldPriceUSD?: number, oldPriceEUR?: number) => {
     const oldPrices = oldPriceUSD && oldPriceEUR ? {USD: oldPriceUSD, EUR: oldPriceEUR} : undefined;
-    fetchSingleCryptoPrice({ symbol, coinName }, oldPrices).then((updatedData) => {
+    
+    fetchSingleCryptoPrice({ symbol, coinName }, oldPrices)
+    .then((updatedData) => {
       dispatch({ type: ActionType.UPDATE_CRYPTO, payload: updatedData });
-    }).catch(() => {
+    })
+    .catch(() => {
       alert(`Failed to update price for "${coinName} (${symbol})". Please try again later.`);
     });
   }, [dispatch]);
@@ -179,7 +183,8 @@ function App() {
         </ul>
       </section>
       <h2>Cryptocurrencies</h2>
-      {isPending ? (
+      {!isPending && state.cryptocurrencies.length === 0 && <p>No cryptocurrencies added. Please, search and add some!</p>}
+      {isPending && state.cryptocurrencies.length === 0 ? (
         <p>Loading...</p>
       ) : (
         <CryptoList handleUpdate={handleUpdate} handleRemove={handleRemove} />

@@ -32,13 +32,16 @@ export function appReducer(state: AppState, action: Action): AppState {
     case ActionType.SET_COINS:
       return { ...state, allCoins: action.payload };
 
-    case ActionType.SET_CRYPTOS:
+    case ActionType.SET_CRYPTOS: {
+      // Build lookup map once
+      const updatedMap = new Map(
+        action.payload.map(c => [c.coin.symbol, c])
+      );
+
       return {
         ...state,
         cryptocurrencies: state.cryptocurrencies.map((crypto) => {
-          const updatedCrypto = action.payload.find(
-            (c) => c.coin.symbol === crypto.coin.symbol
-          );
+          const updatedCrypto = updatedMap.get(crypto.coin.symbol);
 
           if (!updatedCrypto) return crypto;
 
@@ -57,6 +60,7 @@ export function appReducer(state: AppState, action: Action): AppState {
           };
         })
       };
+    }
 
     case ActionType.ADD_CRYPTO:
       // Use symbol-based duplicate check instead of reference equality

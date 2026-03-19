@@ -21,6 +21,17 @@ export interface Coin {
   coinName: string;
 }
 
+export interface CoinItem {
+  Symbol: string;
+  CoinName: string;
+}
+
+export interface CoinsResponse {
+  Data: Record<string, CoinItem>;
+}
+
+export type MultiPricesResponse = Record<string, CryptoPrice>;
+
 export enum ActionType {
   SET_COINS = 'SET_COINS',
   SET_QUERY = 'SET_QUERY',
